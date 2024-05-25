@@ -18,7 +18,8 @@ namespace BookManager.Controllers
         // GET: Books
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Books.ToListAsync());
+            return View("~/Views/Books/Index.cshtml", await _context.Books.ToListAsync());
+            // Specify the full path to the view file in the Books folder
         }
 
         // GET: Books/Details/5
