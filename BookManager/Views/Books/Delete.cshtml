@@ -1,0 +1,40 @@
+﻿@model BookManager.Models.Book
+
+@{
+    ViewData["Title"] = "Delete";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="card-title mb-0">Delete Book</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">Are you sure you want to delete this book?</h4>
+                        <p class="mb-0">This action cannot be undone. Please confirm deletion.</p>
+                    </div>
+                    <dl class="row">
+                        <dt class="col-sm-3 font-weight-bold">Title:</dt>
+                        <dd class="col-sm-9">@Model.Title</dd>
+                        <dt class="col-sm-3 font-weight-bold">Author:</dt>
+                        <dd class="col-sm-9">@Model.Author</dd>
+                        <dt class="col-sm-3 font-weight-bold">Pages:</dt>
+                        <dd class="col-sm-9">@Model.Pages</dd>
+                        <dt class="col-sm-3 font-weight-bold">Published Date:</dt>
+                        <dd class="col-sm-9">@Model.PublishedDate.ToShortDateString()</dd>
+                    </dl>
+                </div>
+                <div class="card-footer">
+                    <form asp-action="Delete">
+                        <input type="hidden" asp-for="Id" />
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-trash-alt mr-1"></i>Delete</button>
+                        <a href="@Url.Action("Index")" class="btn btn-secondary"><i class="fas fa-arrow-left mr-1"></i>Back to List</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
