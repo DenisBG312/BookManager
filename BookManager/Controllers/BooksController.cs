@@ -1,25 +1,35 @@
-﻿// Controllers/BooksController.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BookManager.Data;
 using BookManager.Models;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace BookManager.Controllers
 {
     public class BooksController : Controller
     {
         private readonly BookContext _context;
+        private readonly IWebHostEnvironment _hostingEnvironment;
 
-        public BooksController(BookContext context)
+        public BooksController(BookContext context, IWebHostEnvironment hostingEnvironment)
         {
             _context = context;
+            _hostingEnvironment = hostingEnvironment; // Inject IWebHostEnvironment
         }
 
         // GET: Books
         public async Task<IActionResult> Index()
         {
-            return View("~/Views/Books/Index.cshtml", await _context.Books.ToListAsync());
-            // Specify the full path to the view file in the Books folder
+            var books = await _context.Books.ToListAsync();
+            return View("~/Views/Books/Index.cshtml", books);
         }
 
         // GET: Books/Details/5
@@ -46,13 +56,31 @@ namespace BookManager.Controllers
             return View();
         }
 
-        // POST: Books/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,Author,Pages,PublishedDate")] Book book)
+        public async Task<IActionResult> Create([Bind("Id,Title,Author,Pages,PublishedDate")] Book book, IFormFile imageFile)
         {
             if (ModelState.IsValid)
             {
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(_hostingEnvironment.WebRootPath, "uploads");
+                    var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(imageFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await imageFile.CopyToAsync(fileStream);
+                    }
+
+                    using (var image = Image.Load(filePath))
+                    {
+                        image.Mutate(x => x.Resize(550, 550));
+                        image.Save(filePath); // Overwrite the original image with the resized one
+                    }
+
+                    book.ImageUrl = "/uploads/" + uniqueFileName;
+                }
+
                 _context.Add(book);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -76,10 +104,9 @@ namespace BookManager.Controllers
             return View(book);
         }
 
-        // POST: Books/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Author,Pages,PublishedDate")] Book book)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Author,Pages,PublishedDate,ImageUrl")] Book book, IFormFile imageFile)
         {
             if (id != book.Id)
             {
@@ -88,6 +115,26 @@ namespace BookManager.Controllers
 
             if (ModelState.IsValid)
             {
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(_hostingEnvironment.WebRootPath, "uploads");
+                    Directory.CreateDirectory(uploadsFolder);
+                    var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(imageFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await imageFile.CopyToAsync(fileStream);
+                    }
+
+                    using (var image = Image.Load(filePath))
+                    {
+                        image.Mutate(x => x.Resize(550, 550));
+                        image.Save(filePath);
+                    }
+
+                    book.ImageUrl = "/uploads/" + uniqueFileName;
+                }
+
                 try
                 {
                     _context.Update(book);
@@ -133,8 +180,11 @@ namespace BookManager.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var book = await _context.Books.FindAsync(id);
-            _context.Books.Remove(book);
-            await _context.SaveChangesAsync();
+            if (book != null)
+            {
+                _context.Books.Remove(book);
+                await _context.SaveChangesAsync();
+            }
             return RedirectToAction(nameof(Index));
         }
 

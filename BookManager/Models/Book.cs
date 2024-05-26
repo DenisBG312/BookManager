@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BookManager.Models
 {
@@ -22,5 +23,8 @@ namespace BookManager.Models
         [Required]
         [DataType(DataType.Date)]
         public DateTime PublishedDate { get; set; }
+
+        public string? ImageUrl { get; set; }
+
     }
 }
